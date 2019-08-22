@@ -1,0 +1,13 @@
+{
+  "options": {
+    "frequencyInMinutes": 10
+  },
+  "shelters": [
+    {
+      "name": "Shelters with 50 miles",
+      "url": "http://petharbor.com/results.asp?searchtype=ADOPT&start=3&friends=1&samaritans=1&nosuccess=0&orderby=Time%20At%20Shelter&rows=100&imght=120&imgres=thumb&tWidth=200&view=sysadm.v_slns&bgcolor=%27ADC4E4%27&text=black&link=blue&vlink=purple&fontface=arial&fontsize=10&col_hdr_bg=black&col_bg=white&col_fg=black&zip=93908&miles=50&shelterlist=%27HLST%27,%27MNTR%27,%27SLNS%27,%27SNJS%27,%27SCCO%27,%27SNCR%27,%27SNCR1%27&atype=&where=type_DOG&PAGE=1"
+    }
+  ],
+  "phoneNumbers": [
+  ]
+}

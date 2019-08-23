@@ -10,7 +10,6 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -130,7 +129,9 @@ public class App {
         }
 
         private void sendMessage(Set<Dog> newDogs) {
-            final String message = "Found " + newDogs.size() + " new dog" + (newDogs.size() > 1 ? "s" : "") + ".";
+            final String names = newDogs.stream().map(dog -> dog.name != null ? dog.name : dog.id).collect(Collectors.joining(","));
+            final String message = textMessage("Found " + newDogs.size() + " new dog" + (newDogs.size() > 1 ? "s" : "") + ": "  + names);
+
             final Map<String, MessageAttributeValue> smsAttributes =
                     new HashMap<String, MessageAttributeValue>();
             smsAttributes.put("AWS.SNS.SMS.SMSType", new MessageAttributeValue()
@@ -147,6 +148,14 @@ public class App {
                 System.out.println(result); // Prints the message ID.
             });
         }
+
+        private String textMessage(String message) {
+            if (message.length() > 140) {
+                return message.substring(0, 137) + "...";
+            }
+            return message;
+        }
+
 
         private String getTdText(Elements tds, Integer index) {
             if (index == null) {

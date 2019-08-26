@@ -10,33 +10,20 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
-import com.amazonaws.services.sns.AmazonSNSClient;
-import com.amazonaws.services.sns.model.MessageAttributeValue;
-import com.amazonaws.services.sns.model.PublishRequest;
-import com.amazonaws.services.sns.model.PublishResult;
-import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.overbeck.petscanner.model.Dog;
 import org.overbeck.petscanner.model.Input;
 
 public class App {
 
-    private static Map<String, Set<Dog>> knownDogs = new HashMap<>();
+    static Map<String, Set<Dog>> knownDogs = new HashMap<>();
 
     public static void main(String[] args) throws IOException {
         final JsonReader jsonReader = new JsonReader(getInputReader(args));
@@ -64,128 +51,4 @@ public class App {
         return url;
     }
 
-
-
-    private static class PetScannerTask extends TimerTask {
-
-        private final Input.Shelter[] shelters;
-        // TODO: Determines these dynamically from the first row of results
-        private final static int DETAILS_INDEX = 0;
-        private final static Integer ID_INDEX = 1;
-        private final static Integer NAME_INDEX = null;
-        private final static Integer GENDER_INDEX = 2;
-        private final static Integer COLOR_INDEX = 3;
-        private final static Integer BREED_INDEX = 4;
-        private final static Integer AGE_INDEX = 5;
-        private final static Integer WEIGHT_INDEX = null;
-        private final static Integer TIME_AT_SHELTER_INDEX = 6;
-        private final AmazonSNSClient amazonSNSClient;
-        private final String[] phoneNumbers;
-
-        public PetScannerTask(Input input) {
-            this.shelters = input.shelters;
-            phoneNumbers = input.phoneNumbers;
-            amazonSNSClient = new AmazonSNSClient();
-        }
-
-        @Override
-        public void run() {
-            Arrays.stream(shelters).forEach(shelter -> {
-                try {
-                    final Document doc = Jsoup.connect(shelter.getUrl()).get();
-                    final String baseUrl = baseUrl(shelter.getUrl());
-                    final Element element = doc.select("table.ResultsTable").first();
-                    Set<Dog> mostRecentDogs = element.select("tr").stream()
-                            .skip(1) // First row is a header column
-                            .map(e -> {
-                                Elements tds = e.select("td");
-                                return new Dog(getTdText(tds, ID_INDEX),
-                                        getTdText(tds, NAME_INDEX),
-                                        getTdText(tds, GENDER_INDEX),
-                                        getTdText(tds, COLOR_INDEX),
-                                        getTdText(tds, BREED_INDEX),
-                                        getTdText(tds, AGE_INDEX),
-                                        getTdText(tds, WEIGHT_INDEX),
-                                        getImageUrl(tds.get(DETAILS_INDEX), baseUrl),
-                                        getDetailsUrl(tds.get(DETAILS_INDEX), baseUrl),
-                                        getTdText(tds, TIME_AT_SHELTER_INDEX));
-                            })
-                            .collect(Collectors.toSet());
-                    final Set<Dog> knownDogsForShelter = knownDogs.get(shelter.getName());
-                    Set<Dog> difference = newDogs(mostRecentDogs, knownDogsForShelter);
-                    if (difference.size() == 0) {
-                        System.out.println("No new dogs!");
-                    } else {
-                        sendMessage(difference);
-                        difference.stream().sorted(Comparator.comparing(dog -> dog.timeAtShelter)).forEach(dog -> System.out.println(dog));
-                        knownDogs.put(shelter.getName(), mostRecentDogs);
-                    }
-
-                } catch (Exception ex) {
-                    System.err.println("Error reading " + shelter.getName());
-                    ex.printStackTrace();
-                }
-            });
-        }
-
-        private void sendMessage(Set<Dog> newDogs) {
-            final String names = newDogs.stream().map(dog -> dog.name != null ? dog.name : dog.id).collect(Collectors.joining(","));
-            final String message = textMessage("Found " + newDogs.size() + " new dog" + (newDogs.size() > 1 ? "s" : "") + ": "  + names);
-
-            final Map<String, MessageAttributeValue> smsAttributes =
-                    new HashMap<String, MessageAttributeValue>();
-            smsAttributes.put("AWS.SNS.SMS.SMSType", new MessageAttributeValue()
-                    .withStringValue("Promotional") //Sets the type to promotional.
-                    .withDataType("String"));
-            smsAttributes.put("AWS.SNS.SMS.SenderID", new MessageAttributeValue()
-                    .withStringValue("PetScanner") //The sender ID shown on the device.
-                    .withDataType("String"));
-            Arrays.stream(phoneNumbers).forEach(phoneNumber -> {
-                PublishResult result = amazonSNSClient.publish(new PublishRequest()
-                        .withMessage(message)
-                        .withPhoneNumber(phoneNumber)
-                        .withMessageAttributes(smsAttributes));
-                System.out.println(result); // Prints the message ID.
-            });
-        }
-
-        private String textMessage(String message) {
-            if (message.length() > 140) {
-                return message.substring(0, 137) + "...";
-            }
-            return message;
-        }
-
-
-        private String getTdText(Elements tds, Integer index) {
-            if (index == null) {
-                return null;
-            }
-            return tds.get(index).text();
-        }
-
-        private String getImageUrl(Element td, String baseUrl) {
-            return absoluteUrl(td, "a", "href", baseUrl);
-        }
-
-        private String getDetailsUrl(Element td, String baseUrl) {
-            return absoluteUrl(td, "img", "src", baseUrl);
-        }
-
-        private String absoluteUrl(Element td, String selector, String attr, String baseUrl) {
-            final String url = td.select(selector).attr(attr);
-            // A less that thorough determination
-            if (!url.startsWith("http")) {
-                return baseUrl + url;
-            }
-            return url;
-        }
-
-        private Set<Dog> newDogs(Set<Dog> mostRecentDogs, Set<Dog> knownDogs) {
-            if (knownDogs == null) {
-                return mostRecentDogs;
-            }
-            return Sets.difference(mostRecentDogs, knownDogs);
-        }
-    }
 }

@@ -43,14 +43,14 @@ public class Dog {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, gender, color, breed, age, weight, imageUrl, detailsUrl, timeAtShelter);
+        return Objects.hash(id, name, gender, color, breed, age, weight, imageUrl, detailsUrl);
     }
 
     @Override
     public String toString() {
         return "Dog{" + "id='" + id + '\'' + ", name='" + name + '\'' + ", gender='" + gender + '\'' + ", color='" + color + '\''
                 + ", breed='" + breed + '\'' + ", age='" + age + '\'' + ", weight='" + weight + '\'' + ", imageUrl='" + imageUrl + '\''
-                + ", detailsUrl='" + detailsUrl + '\'' + ", timeAtShelter='" + timeAtShelter + '\'' + '}';
+                + ", detailsUrl='" + detailsUrl + '\'' + + '}';
     }
 
 }

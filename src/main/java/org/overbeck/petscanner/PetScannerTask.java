@@ -1,7 +1,6 @@
 package org.overbeck.petscanner;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -55,7 +54,7 @@ public class PetScannerTask extends TimerTask {
                     System.out.println("No new dogs!");
                 } else {
                     sendMessage(difference);
-                    difference.stream().sorted(Comparator.comparing(dog -> dog.timeAtShelter)).forEach(dog -> System.out.println(dog));
+                    difference.stream().forEach(dog -> System.out.println(dog));
                     App.knownDogs.put(shelter.getName(), mostRecentDogs);
                 }
 
